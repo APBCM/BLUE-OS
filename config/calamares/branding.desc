@@ -1,0 +1,16 @@
+---
+componentName: blueos
+welcomeStyleCalamares: false
+windowSize: 900px,600px
+strings:
+  productName: Blue OS
+  shortProductName: Blue OS
+  version: 24.04 LTS
+  shortVersion: "24.04"
+  versionedName: Blue OS 24.04 LTS
+  shortVersionedName: Blue OS 24.04
+  bootloaderEntryName: Blue OS
+style:
+  SidebarBackground: "#0B132B"
+  SidebarText: "#FFFFFF"
+  SidebarTextCurrent: "#00A8FF"

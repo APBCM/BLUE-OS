@@ -1,0 +1,17 @@
+name: blue_terminal
+description: Blue OS command console (not a PTY emulator).
+version: 0.1.0+1
+environment:
+  sdk: '>=3.3.0 <4.0.0'
+dependencies:
+  flutter:
+    sdk: flutter
+  blue_ui:
+    path: ../../packages/blue_ui
+  blue_system:
+    path: ../../packages/blue_system
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+flutter:
+  uses-material-design: true

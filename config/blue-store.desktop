@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=Blue Store
+Comment=Browse Flatpak applications from Flathub
+Exec=blue-os-store
+Icon=system-software-install
+Categories=System;PackageManager;
