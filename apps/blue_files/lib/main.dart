@@ -77,9 +77,11 @@ class _FilesPageState extends State<FilesPage> {
       IconButton(tooltip: 'English / فارسی', onPressed: widget.language.toggle, icon: const Icon(Icons.translate)),
     ], child: Row(children: [
       SizedBox(width: 210, child: BlueGlassCard(child: ListView(children: [
-        for (final place in places) BlueListTile(title: place.$1, icon: place.$3, onTap: () => navigate(place.$2)),
-        BlueListTile(title: widget.language.text('سطل زباله', 'Trash'), icon: Icons.delete_outline,
-          onTap: () => runner.runCommand('xdg-open', ['trash:///'])),
+        for (final place in places) Material(color: Colors.transparent,
+          child: BlueListTile(title: place.$1, icon: place.$3, onTap: () => navigate(place.$2))),
+        Material(color: Colors.transparent,
+          child: BlueListTile(title: widget.language.text('سطل زباله', 'Trash'), icon: Icons.delete_outline,
+            onTap: () => runner.runCommand('xdg-open', ['trash:///']))),
       ]))),
       const SizedBox(width: 16),
       Expanded(child: Column(children: [
@@ -102,7 +104,7 @@ class _FilesPageState extends State<FilesPage> {
         if (model.busy) const LinearProgressIndicator(),
         Expanded(child: ListView.builder(itemCount: model.items.length, itemBuilder: (context, index) {
           final item = model.items[index];
-          return BlueListTile(title: item.name,
+          return Material(color: Colors.transparent, child: BlueListTile(title: item.name,
             subtitle: '${item.directory ? "—" : "${item.size} B"}   •   ${item.modified.toLocal()}',
             icon: item.directory ? Icons.folder_outlined : Icons.insert_drive_file_outlined,
             onTap: () => item.directory ? navigate(item.entity.path) : model.perform(() => model.service.open(item.entity)),
@@ -111,7 +113,7 @@ class _FilesPageState extends State<FilesPage> {
               PopupMenuItem(value: 'cut', child: Text('Cut / برش')),
               PopupMenuItem(value: 'rename', child: Text('Rename / تغییر نام')),
               PopupMenuItem(value: 'trash', child: Text('Trash / سطل زباله')),
-            ]));
+            ])));
         })),
       ])),
     ]));
