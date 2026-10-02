@@ -39,7 +39,7 @@ check_host() {
     done
     local free_kib
     free_kib=$(df -Pk "$SCRIPT_DIR" | awk 'END {print $4}')
-    ((free_kib >= 12000000)) || die 'At least 12 GiB free workspace required.'
+    ((free_kib >= 5000000)) || die 'About 5 GB free workspace required.'
 }
 mount_root() {
     mount --bind /dev "$ROOT/dev"; MOUNTS+=("$ROOT/dev")
