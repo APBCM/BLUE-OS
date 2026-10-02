@@ -140,31 +140,19 @@ EOF
     enter update-initramfs -u -k all
 }
 install_local_debs() {
-    local deb count=0
-    local -a debs=()
-    if [[ -d "$SCRIPT_DIR/dist" ]]; then
-        shopt -s nullglob
-        debs=("$SCRIPT_DIR"/dist/*.deb)
-        shopt -u nullglob
-    fi
-    if ((${#debs[@]} == 0)); then
-        log 'No dist/*.deb found; skipping local app installation (placeholder launchers remain).'
+    local deb_count
+    deb_count=$(find "$SCRIPT_DIR/dist" -maxdepth 1 -name "*.deb" 2>/dev/null | wc -l || true)
+    if ((deb_count == 0)); then
+        echo "[blue-os] No local .deb packages found in dist/, skipping."
         return 0
     fi
-    log "Installing ${#debs[@]} locally built .deb package(s) into the chroot."
+
+    echo "[blue-os] Installing $deb_count locally built .deb package(s) into the chroot."
     mkdir -p "$ROOT/tmp/blue-debs"
-    for deb in "${debs[@]}"; do
-        log "  - $(basename -- "$deb")"
-        cp -f -- "$deb" "$ROOT/tmp/blue-debs/"
-    done
-    enter apt-get install -y --no-install-recommends /tmp/blue-debs/*.deb
-    for launcher in blue-store blue-files blue-terminal; do
-        if [[ ! -f "$ROOT/usr/share/applications/$launcher.desktop" ]]; then
-            log "  Re-copying missing launcher: $launcher.desktop"
-            install -m 0644 "$SCRIPT_DIR/config/$launcher.desktop" \
-                "$ROOT/usr/share/applications/$launcher.desktop"
-        fi
-    done
+    cp "$SCRIPT_DIR"/dist/*.deb "$ROOT/tmp/blue-debs/"
+
+    # Use dpkg -i directly with wildcards inside a subshell in chroot, then fix missing dependencies
+    enter sh -c 'dpkg -i /tmp/blue-debs/*.deb || apt-get install -y -f'
     rm -rf "$ROOT/tmp/blue-debs"
 }
 make_esp() {
