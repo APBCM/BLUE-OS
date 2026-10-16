@@ -18,4 +18,22 @@ void main() {
     await expectLater(packages.aptInstall('vlc;echo'), throwsFormatException);
     await expectLater(packages.flatpakInstall('flathub', '../bad'), throwsFormatException);
   });
+  test('privileged commands reject arbitrary flags and executables', () {
+    final runner = SystemRunner();
+    expect(() => runner.runWithPkexec('/usr/bin/sh', ['-c', 'id']), throwsArgumentError);
+    expect(() => runner.runWithPkexec('/usr/bin/flatpak', ['install', '--system', '-y', 'flathub', '--filesystem=host']), throwsArgumentError);
+    runner.dispose();
+  });
+  test('Flathub search validates query before spawning a process', () async {
+    final runner = SystemRunner();
+    final packages = PackageService(runner);
+    await expectLater(packages.flatpakSearch('--filesystem=host'), throwsFormatException);
+    await expectLater(packages.flatpakSearch('x'), throwsFormatException);
+    runner.dispose();
+  });
+  test('launch rejects unsafe Flatpak identifiers', () async {
+    final runner = SystemRunner();
+    await expectLater(runner.launchFlatpak('--command=sh'), throwsFormatException);
+    runner.dispose();
+  });
 }

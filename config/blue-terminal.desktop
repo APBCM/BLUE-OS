@@ -1,6 +1,6 @@
 [Desktop Entry]
 Type=Application
 Name=Blue Terminal
-Exec=xfce4-terminal --command=zsh
+Exec=konsole -e zsh
 Icon=utilities-terminal
 Categories=System;TerminalEmulator;

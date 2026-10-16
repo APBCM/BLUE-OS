@@ -7,10 +7,35 @@ class StoreModel extends ChangeNotifier {
   final PackageService packages;
   final Future<List<CatalogApp>> Function() loader;
   List<CatalogApp> apps = [];
+  List<CatalogApp> remoteResults = [];
+  String? selectedCategory;
   final installed = <String, bool>{};
   bool busy = false;
+  String? activeAppId;
   bool flatpakAvailable = true;
   String? error;
+
+  void setCategory(String? category) {
+    selectedCategory = category;
+    notifyListeners();
+  }
+
+  Future<void> searchFlathub(String query) async {
+    if (busy || !flatpakAvailable) return;
+    busy = true; error = null; remoteResults = []; notifyListeners();
+    try {
+      final results = await packages.flatpakSearch(query);
+      remoteResults = results.map((item) => CatalogApp(
+        id: 'flathub:${item.id}', nameFa: item.name, nameEn: item.name,
+        summaryFa: item.description, summaryEn: item.description,
+        type: 'flatpak', package: item.id, remote: 'flathub', category: 'tools', popular: false,
+      )).toList();
+      for (final app in remoteResults) {
+        installed[app.id] = await packages.flatpakInstalled(app.package);
+      }
+    } catch (exception) { error = exception.toString(); }
+    busy = false; notifyListeners();
+  }
 
   Future<void> initialize() async {
     try {
@@ -28,7 +53,7 @@ class StoreModel extends ChangeNotifier {
 
   Future<void> change(CatalogApp app) async {
     if (busy) return;
-    busy = true; error = null; notifyListeners();
+    busy = true; activeAppId = app.id; error = null; notifyListeners();
     try {
       final remove = installed[app.id] ?? false;
       final result = app.type == 'apt'
@@ -37,7 +62,16 @@ class StoreModel extends ChangeNotifier {
       if (!result.ok) throw Exception(result.stderr.isEmpty ? 'Operation failed (${result.exitCode})' : result.stderr);
       installed[app.id] = !remove;
     } catch (exception) { error = exception.toString(); }
-    busy = false; notifyListeners();
+    busy = false; activeAppId = null; notifyListeners();
+  }
+
+  Future<void> launch(CatalogApp app) async {
+    if (app.type != 'flatpak' || !(installed[app.id] ?? false)) return;
+    final result = await packages.launchFlatpak(app.package);
+    if (!result.ok) {
+      error = result.stderr.isEmpty ? 'Unable to launch ${app.nameEn}' : result.stderr;
+      notifyListeners();
+    }
   }
 
   Future<void> installFlatpak() async {

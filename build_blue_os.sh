@@ -34,7 +34,7 @@ check_host() {
     for file in /usr/lib/ISOLINUX/{isolinux.bin,isohdpfx.bin} /usr/lib/syslinux/modules/bios/{ldlinux.c32,menu.c32,libcom32.c32,libutil.c32}; do
         [[ -f "$file" ]] || die "Missing $file (install isolinux and syslinux-common)"
     done
-    for file in grub.cfg isolinux.cfg wallpaper.svg blue-store.desktop blue-files.desktop blue-terminal.desktop install-blue-os.desktop blue-os-look.sh blue-os-store.sh blue-os-installer.sh calamares/{settings.conf,unpackfs.conf,packages.conf,branding.desc,users.conf,displaymanager.conf,partition.conf,bootloader.conf,cleanup.conf}; do
+    for file in grub.cfg isolinux.cfg wallpaper.svg install-blue-os.svg blue-store.desktop blue-files.desktop blue-terminal.desktop install-blue-os.desktop blue-os-look.sh blue-os-store.sh blue-os-installer.sh calamares/{settings.conf,unpackfs.conf,packages.conf,branding.desc,users.conf,displaymanager.conf,partition.conf,bootloader.conf,cleanup.conf}; do
         [[ -f "$SCRIPT_DIR/config/$file" ]] || die "Missing config/$file"
     done
     local free_kib
@@ -80,13 +80,14 @@ install_system() {
         systemd-zram-generator flatpak xdg-desktop-portal-kde \
         plasma-discover plasma-discover-backend-flatpak \
         ca-certificates curl zsh zenity plymouth plymouth-theme-spinner zstd \
+        vlc kcalc partitionmanager neofetch wget git htop \
         calamares calamares-settings-ubuntu-common squashfs-tools \
         grub-pc-bin grub-efi-amd64-bin grub-efi-amd64-signed shim-signed \
         efibootmgr dosfstools parted e2fsprogs os-prober python3 python3-yaml
     enter locale-gen en_US.UTF-8
     enter update-locale LANG=en_US.UTF-8
-    if command -v plymouth-set-default-theme >/dev/null 2>&1; then
-        plymouth-set-default-theme -R spinner || true
+    if enter sh -c 'command -v plymouth-set-default-theme >/dev/null 2>&1'; then
+        enter plymouth-set-default-theme -R spinner || true
     fi
     enter systemctl enable NetworkManager sddm
     enter flatpak remote-add --system --if-not-exists --from flathub https://flathub.org/repo/flathub.flatpakrepo
@@ -99,6 +100,8 @@ configure_system() {
         "$ROOT/usr/share/applications" "$ROOT/usr/local/bin" "$ROOT/etc/skel/Desktop" \
         "$ROOT/etc/default/grub.d"
     install -m 0644 "$SCRIPT_DIR/config/wallpaper.svg" "$ROOT/usr/share/backgrounds/blue-os/wallpaper.svg"
+    mkdir -p "$ROOT/usr/share/icons/hicolor/scalable/apps"
+    install -m 0644 "$SCRIPT_DIR/config/install-blue-os.svg" "$ROOT/usr/share/icons/hicolor/scalable/apps/blue-os-installer.svg"
     install -m 0644 "$SCRIPT_DIR/config/calamares/branding.desc" "$ROOT/etc/calamares/branding/blueos/branding.desc"
     install -m 0644 "$SCRIPT_DIR/config/calamares/settings.conf" "$ROOT/etc/calamares/settings.conf"
     install -m 0644 "$SCRIPT_DIR/config/calamares/unpackfs.conf" "$ROOT/etc/calamares/modules/unpackfs.conf"
@@ -194,7 +197,7 @@ package_iso() {
     cp "$ROOT/boot/initrd.img-${kernel#vmlinuz-}" "$ISO/casper/initrd"
     rm -f "$ROOT/usr/sbin/policy-rc.d"
     enter apt-get clean
-    rm -rf "$ROOT/var/lib/apt/lists/"* "$ROOT/tmp/"*
+    rm -rf "$ROOT/var/lib/apt/lists/"* "$ROOT/var/cache/apt/archives/"*.deb "$ROOT/tmp/"*
     for ((index=${#MOUNTS[@]}-1; index>=0; index--)); do umount "${MOUNTS[index]}"; done
     MOUNTS=()
     mksquashfs "$ROOT" "$ISO/casper/filesystem.squashfs" -comp xz -b 1M \

@@ -1,7 +1,9 @@
 [Desktop Entry]
 Type=Application
 Name=Install Blue OS
-Comment=Install Blue OS to a disk
+Comment=Install Blue OS with Calamares
+Comment[fa]=نصب بلو او‌اس روی دیسک
 Exec=blue-os-installer
-Icon=system-software-install
-Categories=System;
+Icon=blue-os-installer
+Terminal=false
+Categories=System;Settings;

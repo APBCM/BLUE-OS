@@ -5,8 +5,9 @@ import 'package:flutter/services.dart';
 class CatalogApp {
   const CatalogApp({required this.id, required this.nameFa, required this.nameEn,
     required this.summaryFa, required this.summaryEn, required this.type,
-    required this.package, required this.remote, required this.popular});
-  final String id, nameFa, nameEn, summaryFa, summaryEn, type, package, remote;
+    required this.package, required this.remote, this.category = 'tools',
+    this.icon = 'assets/icons/placeholder.svg', required this.popular});
+  final String id, nameFa, nameEn, summaryFa, summaryEn, type, package, remote, category, icon;
   final bool popular;
   factory CatalogApp.fromJson(Map<String, dynamic> json) {
     final type = json['type'] as String;
@@ -15,6 +16,11 @@ class CatalogApp {
         ? (json['apt'] as Map<String, dynamic>)['package'] as String
         : (json['flatpak'] as Map<String, dynamic>)['ref'] as String;
     final remote = type == 'flatpak' ? (json['flatpak'] as Map<String, dynamic>)['remote'] as String : '';
+    final category = json['category'] as String? ?? 'tools';
+    final icon = json['icon'] as String? ?? 'assets/icons/placeholder.svg';
+    if (!{'development', 'media', 'internet', 'tools'}.contains(category)) {
+      throw const FormatException('Unknown catalog category');
+    }
     if (type == 'apt' ? !PackageIds.validApt(package)
         : !PackageIds.validFlatpak(package) || !PackageIds.validFlatpak(remote)) {
       throw const FormatException('Unsafe catalog identifier');
@@ -22,7 +28,8 @@ class CatalogApp {
     return CatalogApp(id: json['id'] as String, nameFa: json['name_fa'] as String,
       nameEn: json['name_en'] as String, summaryFa: json['summary_fa'] as String,
       summaryEn: json['summary_en'] as String, type: type, package: package,
-      remote: remote, popular: json['popular'] as bool? ?? false);
+      remote: remote, category: category, icon: icon,
+      popular: json['popular'] as bool? ?? false);
   }
 }
 
