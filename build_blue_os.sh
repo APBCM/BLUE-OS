@@ -34,12 +34,12 @@ check_host() {
     for file in /usr/lib/ISOLINUX/{isolinux.bin,isohdpfx.bin} /usr/lib/syslinux/modules/bios/{ldlinux.c32,menu.c32,libcom32.c32,libutil.c32}; do
         [[ -f "$file" ]] || die "Missing $file (install isolinux and syslinux-common)"
     done
-    for file in grub.cfg isolinux.cfg wallpaper.svg blue-store.desktop blue-files.desktop blue-terminal.desktop install-blue-os.desktop blue-os-look.sh blue-os-store.sh blue-os-installer.sh calamares/{settings.conf,unpackfs.conf,packages.conf,branding.desc,users.conf,displaymanager.conf,partition.conf,cleanup.conf}; do
+    for file in grub.cfg isolinux.cfg wallpaper.svg blue-store.desktop blue-files.desktop blue-terminal.desktop install-blue-os.desktop blue-os-look.sh blue-os-store.sh blue-os-installer.sh calamares/{settings.conf,unpackfs.conf,packages.conf,branding.desc,users.conf,displaymanager.conf,partition.conf,bootloader.conf,cleanup.conf}; do
         [[ -f "$SCRIPT_DIR/config/$file" ]] || die "Missing config/$file"
     done
     local free_kib
     free_kib=$(df -Pk "$SCRIPT_DIR" | awk 'END {print $4}')
-    ((free_kib >= 5000000)) || die 'About 5 GB free workspace required.'
+    ((free_kib >= 5000000)) || log 'WARNING: Less than 5 GB free; ISO build may run out of space.'
 }
 mount_root() {
     mount --bind /dev "$ROOT/dev"; MOUNTS+=("$ROOT/dev")
@@ -70,23 +70,29 @@ install_system() {
     enter apt-get install -y --no-install-recommends \
         linux-generic systemd-sysv initramfs-tools casper sudo dbus dbus-x11 \
         network-manager netplan.io locales console-setup keyboard-configuration \
-        lightdm lightdm-gtk-greeter xorg xfce4 xfce4-terminal thunar thunar-volman \
-        gvfs gvfs-backends tumbler policykit-1-gnome xdg-user-dirs \
-        plank papirus-icon-theme fonts-jetbrains-mono fonts-inter librsvg2-common \
-        flatpak xdg-desktop-portal xdg-desktop-portal-gtk \
-        ca-certificates curl zsh zenity xfce4-screensaver \
+        xorg xserver-xorg-video-vmware xserver-xorg-video-qxl \
+        plasma-desktop plasma-workspace kwin-x11 sddm sddm-theme-breeze \
+        breeze breeze-icon-theme breeze-gtk-theme plasma-nm \
+        dolphin konsole falkon ark okular kde-spectacle \
+        polkit-kde-agent-1 libkf5config-bin kscreen kde-config-gtk-style \
+        fonts-vazirmatn fonts-jetbrains-mono fonts-inter \
+        open-vm-tools-desktop libgl1-mesa-dri mesa-vulkan-drivers mesa-utils \
+        systemd-zram-generator flatpak xdg-desktop-portal-kde \
+        plasma-discover plasma-discover-backend-flatpak \
+        ca-certificates curl zsh zenity plymouth-theme-spinner \
         calamares calamares-settings-ubuntu-common squashfs-tools \
         grub-pc-bin grub-efi-amd64-bin grub-efi-amd64-signed shim-signed \
         efibootmgr dosfstools parted e2fsprogs os-prober python3 python3-yaml
     enter locale-gen en_US.UTF-8
     enter update-locale LANG=en_US.UTF-8
-    enter systemctl enable NetworkManager lightdm
+    enter plymouth-set-default-theme spinner
+    enter systemctl enable NetworkManager sddm
     enter flatpak remote-add --system --if-not-exists --from flathub https://flathub.org/repo/flathub.flatpakrepo
 }
 configure_system() {
     log 'Applying Blue OS desktop and installer configuration.'
     mkdir -p "$ROOT/etc/calamares/branding/blueos" "$ROOT/etc/calamares/modules" \
-        "$ROOT/etc/xdg/autostart" "$ROOT/etc/lightdm/lightdm.conf.d" \
+        "$ROOT/etc/xdg/autostart" "$ROOT/etc/sddm.conf.d" "$ROOT/etc/systemd" \
         "$ROOT/etc/sudoers.d" "$ROOT/usr/share/backgrounds/blue-os" \
         "$ROOT/usr/share/applications" "$ROOT/usr/local/bin" "$ROOT/etc/skel/Desktop" \
         "$ROOT/etc/default/grub.d"
@@ -97,6 +103,7 @@ configure_system() {
     install -m 0644 "$SCRIPT_DIR/config/calamares/packages.conf" "$ROOT/etc/calamares/modules/packages.conf"
     install -m 0644 "$SCRIPT_DIR/config/calamares/users.conf" "$ROOT/etc/calamares/modules/users.conf"
     install -m 0644 "$SCRIPT_DIR/config/calamares/partition.conf" "$ROOT/etc/calamares/modules/partition.conf"
+    install -m 0644 "$SCRIPT_DIR/config/calamares/bootloader.conf" "$ROOT/etc/calamares/modules/bootloader.conf"
     install -m 0644 "$SCRIPT_DIR/config/calamares/displaymanager.conf" "$ROOT/etc/calamares/modules/displaymanager.conf"
     install -m 0644 "$SCRIPT_DIR/config/calamares/cleanup.conf" "$ROOT/etc/calamares/modules/blueos-cleanup.conf"
     install -m 0755 "$SCRIPT_DIR/config/blue-os-look.sh" "$ROOT/usr/local/bin/blue-os-look"
@@ -113,23 +120,29 @@ configure_system() {
 Type=Application
 Name=Blue OS desktop settings
 Exec=/usr/local/bin/blue-os-look
-OnlyShowIn=XFCE;
+OnlyShowIn=KDE;
 NoDisplay=true
 EOF
     cat > "$ROOT/etc/casper.conf" <<'EOF'
-export USERNAME="blueos"
+export USERNAME="blue"
 export USERFULLNAME="Blue OS Live User"
 export HOST="blue-os"
 export BUILD_SYSTEM="Ubuntu"
 EOF
-    cat > "$ROOT/etc/lightdm/lightdm.conf.d/70-blue-os-live.conf" <<'EOF'
-[Seat:*]
-autologin-user=blueos
-autologin-user-timeout=0
-user-session=GAPGPTMASKTOKENgykkize9a9dX0X
+    cat > "$ROOT/etc/sddm.conf.d/70-blue-os-live.conf" <<'EOF'
+[Autologin]
+User=blue
+Session=plasma.desktop
+[Theme]
+Current=breeze
 EOF
-    printf 'blueos ALL=(ALL) NOPASSWD:ALL\n' > "$ROOT/etc/sudoers.d/99-blue-os-live"
+    printf 'blue ALL=(ALL) NOPASSWD:ALL\n' > "$ROOT/etc/sudoers.d/99-blue-os-live"
     chmod 0440 "$ROOT/etc/sudoers.d/99-blue-os-live"
+    cat > "$ROOT/etc/systemd/zram-generator.conf" <<'EOF'
+[zram0]
+zram-size = min(ram / 2, 4096)
+compression-algorithm = zstd
+EOF
     cat > "$ROOT/etc/skel/.zshrc" <<'EOF'
 autoload -Uz colors && colors
 PROMPT='%F{cyan}%n%f@%F{blue}%m%f %F{yellow}%~%f %# '
@@ -151,8 +164,12 @@ install_local_debs() {
     mkdir -p "$ROOT/tmp/blue-debs"
     cp "$SCRIPT_DIR"/dist/*.deb "$ROOT/tmp/blue-debs/"
 
-    # Use dpkg -i directly with wildcards inside a subshell in chroot, then fix missing dependencies
-    enter sh -c 'dpkg -i /tmp/blue-debs/*.deb || apt-get install -y -f'
+    enter sh -c 'dpkg -i /tmp/blue-debs/*.deb || apt-get -f install -y'
+    enter dpkg --audit
+    local deb
+    for deb in "$ROOT"/tmp/blue-debs/*.deb; do
+        enter dpkg-query -W -f='${Status}' "$(dpkg-deb -f "$deb" Package)" | grep -qx 'install ok installed' || die "Local package not installed: $deb"
+    done
     rm -rf "$ROOT/tmp/blue-debs"
 }
 make_esp() {
