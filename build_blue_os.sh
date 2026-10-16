@@ -79,13 +79,15 @@ install_system() {
         open-vm-tools-desktop libgl1-mesa-dri mesa-vulkan-drivers mesa-utils \
         systemd-zram-generator flatpak xdg-desktop-portal-kde \
         plasma-discover plasma-discover-backend-flatpak \
-        ca-certificates curl zsh zenity plymouth-theme-spinner \
+        ca-certificates curl zsh zenity plymouth plymouth-theme-spinner zstd \
         calamares calamares-settings-ubuntu-common squashfs-tools \
         grub-pc-bin grub-efi-amd64-bin grub-efi-amd64-signed shim-signed \
         efibootmgr dosfstools parted e2fsprogs os-prober python3 python3-yaml
     enter locale-gen en_US.UTF-8
     enter update-locale LANG=en_US.UTF-8
-    enter plymouth-set-default-theme spinner
+    if command -v plymouth-set-default-theme >/dev/null 2>&1; then
+        plymouth-set-default-theme -R spinner || true
+    fi
     enter systemctl enable NetworkManager sddm
     enter flatpak remote-add --system --if-not-exists --from flathub https://flathub.org/repo/flathub.flatpakrepo
 }
